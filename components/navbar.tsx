@@ -1,18 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { Code2, Search, Plus, Globe, Tag } from "lucide-react";
+import { Code2, Search, Plus, User, LogOut, Globe, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { UserMenu } from "@/components/user-menu";
 import { useState } from "react";
 import { Locale, getTranslations } from "@/lib/i18n";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 export function Navbar() {
   const [locale, setLocale] = useState<Locale>("en");
-  const { data: session } = useSession();
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Mock auth state
   const t = getTranslations(locale);
 
   const pathname = usePathname();
@@ -70,7 +76,7 @@ export function Navbar() {
           </Button>
 
           {/* Create Button */}
-          {session && (
+          {isAuthenticated && (
             <Link href="/snippets/create">
               <Button variant="default" size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -81,8 +87,41 @@ export function Navbar() {
             </Link>
           )}
 
-          {/* User Menu with NextAuth integration */}
-          <UserMenu />
+          {/* User Menu or Sign In */}
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="/avatars/user.jpg" alt="User" />
+                    <AvatarFallback>JD</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    {t.nav.profile}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsAuthenticated(false)}
+                  className="cursor-pointer text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t.nav.signOut}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/auth/signin">
+              <Button variant="default" size="sm">
+                {t.nav.signIn}
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

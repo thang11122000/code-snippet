@@ -1,62 +1,43 @@
-import { redirect } from "next/navigation";
-import { Calendar } from "lucide-react";
+import { notFound } from "next/navigation";
+import { Calendar, MapPin, Link as LinkIcon, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { mockSnippets } from "@/lib/mock-data";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { mockUsers, mockSnippets } from "@/lib/mock-data";
 import { SnippetCard } from "@/components/snippet-card";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata() {
-  const session = await getServerSession(authOptions);
+export async function generateMetadata({ params }: PageProps) {
+  const { id } = await params;
+  const user = mockUsers.find((u) => u.id === id);
 
-  if (!session?.user) {
+  if (!user) {
     return {
-      title: "Sign In Required - CodeSnippet",
+      title: "User Not Found",
     };
   }
 
   return {
-    title: `${session.user.name} - CodeSnippet`,
-    description:
-      session.user.email || `View ${session.user.name}'s code snippets`,
+    title: `${user.name} - CodeSnippet`,
+    description: user.bio || `View ${user.name}'s code snippets`,
   };
 }
 
 export default async function ProfilePage({ params }: PageProps) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const user = mockUsers.find((u) => u.id === id);
 
-  // Redirect to sign in if not authenticated
-  if (!session?.user) {
-    redirect("/auth/signin");
+  if (!user) {
+    notFound();
   }
 
-  // Check if viewing own profile
-  const isOwnProfile = session.user.id === id;
-
-  // If not own profile, redirect to own profile (for now)
-  // Later you can allow viewing other users' profiles
-  if (!isOwnProfile) {
-    redirect(`/profile/${session.user.id}`);
-  }
-
-  const user = {
-    id: session.user.id,
-    name: session.user.name || "Anonymous User",
-    email: session.user.email || "",
-    avatar: session.user.image || "",
-    bio: "", // TODO: Get from database
-    createdAt: new Date().toISOString(), // TODO: Get from database
-  };
-
-  // TODO: Get user snippets from database
   const userSnippets = mockSnippets.filter((s) => s.author.id === id);
+  const isOwnProfile = false; // Mock - would check against current user
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -66,7 +47,8 @@ export default async function ProfilePage({ params }: PageProps) {
   };
 
   return (
-    <div className="container max-w-6xl px-4 py-8 mx-auto">
+    <div className="container max-w-6xl px-4 py-8">
+      {/* Profile Header */}
       <Card className="mb-8">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-6">
@@ -85,6 +67,16 @@ export default async function ProfilePage({ params }: PageProps) {
                   <h1 className="text-2xl md:text-3xl font-bold">
                     {user.name}
                   </h1>
+                  {isOwnProfile && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 mx-auto md:mx-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Profile
+                    </Button>
+                  )}
                 </div>
                 <p className="text-muted-foreground">{user.email}</p>
               </div>
@@ -97,25 +89,69 @@ export default async function ProfilePage({ params }: PageProps) {
                   <span>Joined {formatDate(user.createdAt)}</span>
                 </div>
               </div>
+
+              {/* Stats */}
+              <div className="flex items-center justify-center md:justify-start gap-6 pt-2">
+                <div className="text-center md:text-left">
+                  <p className="text-2xl font-bold">{userSnippets.length}</p>
+                  <p className="text-sm text-muted-foreground">Snippets</p>
+                </div>
+                <Separator orientation="vertical" className="h-12" />
+                <div className="text-center md:text-left">
+                  <p className="text-2xl font-bold">
+                    {userSnippets.reduce((acc, s) => acc + s.likes, 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Total Likes</p>
+                </div>
+                <Separator orientation="vertical" className="h-12" />
+                <div className="text-center md:text-left">
+                  <p className="text-2xl font-bold">
+                    {userSnippets.reduce((acc, s) => acc + s.views, 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Total Views</p>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {userSnippets.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {userSnippets.map((snippet) => (
-            <SnippetCard key={snippet.id} snippet={snippet} />
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground mb-4">No snippets yet</p>
-            {isOwnProfile && <Button>Create Your First Snippet</Button>}
-          </CardContent>
-        </Card>
-      )}
+      {/* Tabs */}
+      <Tabs defaultValue="snippets" className="space-y-6">
+        <TabsList className="w-full md:w-auto">
+          <TabsTrigger value="snippets" className="flex-1 md:flex-none">
+            Snippets ({userSnippets.length})
+          </TabsTrigger>
+          <TabsTrigger value="liked" className="flex-1 md:flex-none">
+            Liked
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="snippets" className="space-y-6">
+          {userSnippets.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {userSnippets.map((snippet) => (
+                <SnippetCard key={snippet.id} snippet={snippet} />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-muted-foreground mb-4">No snippets yet</p>
+                {isOwnProfile && <Button>Create Your First Snippet</Button>}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="liked">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No liked snippets yet</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

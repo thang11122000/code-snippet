@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,42 +27,15 @@ import { CodeEditor } from "@/components/code-editor";
 import { LANGUAGES } from "@/lib/types";
 import { estimateComplexity, getComplexityColor } from "@/lib/complexity";
 import { toast } from "sonner";
-import { useSession } from "next-auth/react";
 
 export default function CreateSnippetPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("");
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Redirect to sign in if not authenticated
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      toast.error("Please sign in to create snippets");
-      router.push("/auth/signin");
-    }
-  }, [status, router]);
-
-  // Show loading while checking authentication
-  if (status === "loading") {
-    return (
-      <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render form if not authenticated
-  if (!session) {
-    return null;
-  }
 
   const complexity = estimateComplexity(code);
 
