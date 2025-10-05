@@ -84,7 +84,7 @@ export default function CreateSnippetPage() {
   };
 
   return (
-    <div className="container max-w-4xl px-4 py-8">
+    <div className="container max-w-4xl px-4 py-8 mx-auto">
       {/* Header */}
       <div className="mb-8">
         <Link href="/">
