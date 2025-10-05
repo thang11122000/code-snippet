@@ -80,9 +80,7 @@ export function Navbar() {
             <Link href="/snippets/create">
               <Button variant="default" size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline mt-[-2px]">
-                  {t.nav.create}
-                </span>
+                <span className="hidden sm:inline">{t.nav.create}</span>
               </Button>
             </Link>
           )}
