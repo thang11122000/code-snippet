@@ -35,13 +35,13 @@ export const getAllSnippets = asyncHandler(async (req: Request, res: Response) =
   const limit = parseInt(req.query.limit as string) || 20;
   const skip = (page - 1) * limit;
 
-  const { language, tag, search, sort = 'latest' } = req.query;
+  const { languageCode, tag, search, sort = 'latest' } = req.query;
 
   // Build query
   const query: any = { isPublic: true };
 
-  if (language) {
-    query.language = language;
+  if (languageCode) {
+    query.languageCode = languageCode;
   }
 
   if (tag) {
@@ -49,15 +49,19 @@ export const getAllSnippets = asyncHandler(async (req: Request, res: Response) =
   }
 
   if (search) {
-    query.$text = { $search: search as string };
+    // Use regex search for title, description, tags, and author
+    query.$or = [
+      { title: { $regex: search as string, $options: 'i' } },
+      { description: { $regex: search as string, $options: 'i' } },
+      { tags: { $regex: search as string, $options: 'i' } },
+      { authorName: { $regex: search as string, $options: 'i' } },
+    ];
   }
 
   // Build sort
   let sortOption: any = { createdAt: -1 };
-  if (sort === 'popular') {
-    sortOption = { likes: -1, createdAt: -1 };
-  } else if (sort === 'views') {
-    sortOption = { views: -1, createdAt: -1 };
+  if (sort === 'oldest') {
+    sortOption = { createdAt: 1 };
   }
 
   const [snippets, total] = await Promise.all([
@@ -88,10 +92,6 @@ export const getSnippetById = asyncHandler(async (req: Request, res: Response) =
   if (!snippet) {
     throw new AppError('Snippet not found', 404);
   }
-
-  // Increment views
-  snippet.views += 1;
-  await snippet.save();
 
   res.status(200).json({
     success: true,
@@ -142,8 +142,6 @@ export const updateSnippet = asyncHandler(async (req: Request, res: Response) =>
 
   // Don't allow updating these fields
   delete updates.authorId;
-  delete updates.likes;
-  delete updates.views;
 
   const oldSnippet = await Snippet.findById(id);
   if (!oldSnippet) {
@@ -224,28 +222,19 @@ export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
   if (existingLike) {
     // Unlike
     await Like.deleteOne({ userId, snippetId: id });
-    snippet.likes = Math.max(0, snippet.likes - 1);
-    await snippet.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Snippet unliked',
-      liked: false,
-      likes: snippet.likes,
-    });
   } else {
     // Like
     await Like.create({ userId, snippetId: id });
-    snippet.likes += 1;
-    await snippet.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Snippet liked',
-      liked: true,
-      likes: snippet.likes,
-    });
   }
+
+  const likeCount = await Like.countDocuments({ snippetId: id });
+
+  res.status(200).json({
+    success: true,
+    message: existingLike ? 'Snippet unliked' : 'Snippet liked',
+    liked: !existingLike,
+    likes: likeCount,
+  });
 });
 
 // @desc    Get liked snippets by user
@@ -279,6 +268,49 @@ export const getLikedSnippets = asyncHandler(async (req: Request, res: Response)
       total,
       pages: Math.ceil(total / limit),
     },
+  });
+});
+
+// @desc    Get popular tags and authors for search suggestions
+// @route   GET /api/snippets/search-suggestions
+// @access  Public
+export const getSearchSuggestions = asyncHandler(async (req: Request, res: Response) => {
+  const { q } = req.query;
+
+  if (!q || typeof q !== 'string' || q.length < 2) {
+    res.status(200).json({
+      success: true,
+      data: { tags: [], authors: [] },
+    });
+    return;
+  }
+
+  const searchRegex = new RegExp(q, 'i');
+
+  const [tags, authors] = await Promise.all([
+    // Get popular tags that match search
+    Snippet.aggregate([
+      { $match: { isPublic: true } },
+      { $unwind: '$tags' },
+      { $match: { tags: searchRegex } },
+      { $group: { _id: '$tags', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      { $project: { name: '$_id', count: 1, _id: 0 } },
+    ]),
+    // Get authors that match search
+    Snippet.aggregate([
+      { $match: { isPublic: true, authorName: searchRegex } },
+      { $group: { _id: '$authorName', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      { $project: { name: '$_id', count: 1, _id: 0 } },
+    ]),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: { tags, authors },
   });
 });
 

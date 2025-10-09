@@ -56,7 +56,7 @@ export default async function ProfilePage({ params }: PageProps) {
   };
 
   // TODO: Get user snippets from database
-  const userSnippets = mockSnippets.filter((s) => s.author.id === id);
+  const userSnippets = mockSnippets.filter((s) => s.authorId === id);
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -105,7 +105,7 @@ export default async function ProfilePage({ params }: PageProps) {
       {userSnippets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {userSnippets.map((snippet) => (
-            <SnippetCard key={snippet.id} snippet={snippet} />
+            <SnippetCard key={snippet._id} snippet={snippet} />
           ))}
         </div>
       ) : (

@@ -8,6 +8,7 @@ import {
   deleteSnippet,
   toggleLike,
   getLikedSnippets,
+  getSearchSuggestions,
 } from '../controllers/snippetController';
 import {
   createSnippetValidation,
@@ -22,6 +23,7 @@ const router = express.Router();
 // Snippet routes
 router.post('/', createSnippetValidation, createSnippet);
 router.get('/', snippetQueryValidation, getAllSnippets);
+router.get('/search-suggestions', getSearchSuggestions);
 router.get('/user/:userId', [...idValidation, ...paginationValidation], getSnippetsByUser);
 router.get('/liked/:userId', [...idValidation, ...paginationValidation], getLikedSnippets);
 router.get('/:id', idValidation, getSnippetById);

@@ -1,4 +1,4 @@
-// Basic time complexity estimation based on code patterns
+// Big-O Complexity notation
 export type ComplexityLevel =
   | "O(1)"
   | "O(log n)"
@@ -11,16 +11,15 @@ export type ComplexityLevel =
 export function estimateComplexity(code: string): ComplexityLevel {
   const lowerCode = code.toLowerCase();
 
-  // Check for exponential patterns (recursive fibonacci, etc)
+  // O(2ⁿ) - Exponential time (recursive without memoization)
   if (
-    /fibonacci|fib\s*\(/.test(lowerCode) ||
-    /2\s*\*\*\s*n/.test(lowerCode) ||
-    /pow\s*\(\s*2/.test(lowerCode)
+    /fibonacci|fib\s*\(/.test(lowerCode) &&
+    !/memo|cache|dp/.test(lowerCode)
   ) {
     return "O(2ⁿ)";
   }
 
-  // Check for nested loops (quadratic)
+  // O(n²) - Quadratic time (nested loops)
   const forLoops = (code.match(/for\s*\(/g) || []).length;
   const whileLoops = (code.match(/while\s*\(/g) || []).length;
   const totalLoops = forLoops + whileLoops;
@@ -29,24 +28,20 @@ export function estimateComplexity(code: string): ComplexityLevel {
     return "O(n²)";
   }
 
-  // Check for sorting or divide-and-conquer patterns
-  if (
-    /\.sort\s*\(/.test(lowerCode) ||
-    /quicksort|mergesort|heapsort/.test(lowerCode) ||
-    (/recursion|recursive/.test(lowerCode) && /divide/.test(lowerCode))
-  ) {
+  // O(n log n) - Linearithmic time (efficient sorting)
+  if (/quicksort|mergesort|heapsort/.test(lowerCode)) {
     return "O(n log n)";
   }
 
-  // Check for binary search or logarithmic patterns
+  // O(log n) - Logarithmic time (binary search, divide and conquer)
   if (
     /binary\s*search|binarysearch/.test(lowerCode) ||
-    (/while|for/.test(lowerCode) && /\/\s*2|>>|>>>/.test(code))
+    (/while|for/.test(lowerCode) && /\/\s*2|>>|<</.test(code))
   ) {
     return "O(log n)";
   }
 
-  // Check for single loop (linear)
+  // O(n) - Linear time (single loop, array methods)
   if (
     totalLoops === 1 ||
     /\.map\(|\.filter\(|\.reduce\(|\.foreach\(/i.test(lowerCode)
@@ -54,8 +49,8 @@ export function estimateComplexity(code: string): ComplexityLevel {
     return "O(n)";
   }
 
-  // If no loops or iterations detected (constant)
-  if (totalLoops === 0 && !/recursion|recursive/.test(lowerCode)) {
+  // O(1) - Constant time (no loops, simple operations)
+  if (totalLoops === 0 && !/\.map\(|\.filter\(|\.reduce\(/.test(lowerCode)) {
     return "O(1)";
   }
 
@@ -79,4 +74,8 @@ export function getComplexityColor(complexity: ComplexityLevel): string {
     default:
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
   }
+}
+
+export function getComplexityLabel(complexity: ComplexityLevel): string {
+  return complexity;
 }

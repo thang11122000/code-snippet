@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import {
   Card,
   CardContent,
@@ -10,24 +11,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Snippet } from "@/lib/types";
-import { getComplexityColor } from "@/lib/complexity";
+import { getComplexityColor, getComplexityLabel } from "@/lib/complexity";
 
 interface SnippetCardProps {
   snippet: Snippet;
 }
 
-export function SnippetCard({ snippet }: SnippetCardProps) {
+export const SnippetCard = memo(function SnippetCard({
+  snippet,
+}: SnippetCardProps) {
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 hover:border-primary/50">
       <CardHeader className="space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <Link href={`/snippets/${snippet.id}`} className="flex-1 min-w-0">
+          <Link href={`/snippets/${snippet._id}`} className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
               {snippet.title}
             </h3>
           </Link>
           <Badge variant="secondary" className="shrink-0">
-            {snippet.language}
+            {snippet.languageCode}
           </Badge>
         </div>
 
@@ -62,27 +65,24 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
 
       <CardFooter className="flex items-center justify-between text-sm text-muted-foreground border-t">
         <Link
-          href={`/profile/${snippet.author.id}`}
+          href={`/profile/${snippet.authorId}`}
           className="flex items-center gap-2 hover:text-foreground transition-colors"
         >
           <Avatar className="h-6 w-6">
-            <AvatarImage
-              src={snippet.author.avatar}
-              alt={snippet.author.name}
-            />
-            <AvatarFallback>{snippet.author.name[0]}</AvatarFallback>
+            <AvatarImage src={snippet.authorImage} alt={snippet.authorName} />
+            <AvatarFallback>{snippet.authorName[0]}</AvatarFallback>
           </Avatar>
-          <span className="text-xs font-medium">{snippet.author.name}</span>
+          <span className="text-xs font-medium">{snippet.authorName}</span>
         </Link>
 
         <div className="flex items-center gap-3">
           <Badge
             className={`text-xs ${getComplexityColor(snippet.complexity)}`}
           >
-            {snippet.complexity}
+            {getComplexityLabel(snippet.complexity)}
           </Badge>
         </div>
       </CardFooter>
     </Card>
   );
-}
+});

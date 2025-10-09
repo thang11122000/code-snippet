@@ -4,15 +4,13 @@ export interface ISnippet extends Document {
   title: string;
   description: string;
   code: string;
-  language: string;
+  languageCode: string;
   tags: string[];
   authorId: string;
   authorName: string;
   authorImage?: string;
-  likes: number;
-  views: number;
   isPublic: boolean;
-  complexity: 'beginner' | 'intermediate' | 'advanced';
+  complexity: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +33,7 @@ const SnippetSchema = new Schema<ISnippet>(
       type: String,
       required: true,
     },
-    language: {
+    languageCode: {
       type: String,
       required: true,
       lowercase: true,
@@ -64,45 +62,25 @@ const SnippetSchema = new Schema<ISnippet>(
       type: String,
       default: null,
     },
-    likes: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    views: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
     isPublic: {
       type: Boolean,
       default: true,
     },
     complexity: {
       type: String,
-      enum: ['beginner', 'intermediate', 'advanced'],
-      default: 'beginner',
+      trim: true,
+      default: 'unknown',
     },
   },
   {
     timestamps: true,
-    toJSON: {
-      virtuals: true,
-      transform: function (_doc, ret) {
-        delete ret._id;
-        delete (ret as any).__v;
-        return ret;
-      },
-    },
   }
 );
 
 // Indexes for better query performance
 SnippetSchema.index({ authorId: 1, createdAt: -1 });
-SnippetSchema.index({ language: 1 });
+SnippetSchema.index({ languageCode: 1 });
 SnippetSchema.index({ tags: 1 });
-SnippetSchema.index({ likes: -1 });
-SnippetSchema.index({ views: -1 });
 SnippetSchema.index({ createdAt: -1 });
 SnippetSchema.index({ title: 'text', description: 'text' });
 

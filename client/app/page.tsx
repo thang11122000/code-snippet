@@ -3,11 +3,32 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SnippetCard } from "@/components/snippet-card";
-import { mockSnippets, mockTags } from "@/lib/mock-data";
+import { snippetApi, tagApi } from "@/lib/api";
+import { Snippet, Tag } from "@/lib/types";
 
-export default function Home() {
-  const recentSnippets = mockSnippets.slice(0, 6);
-  const popularTags = mockTags.slice(0, 8);
+export default async function Home() {
+  const [snippetsResult, tagsResult] = await Promise.allSettled([
+    snippetApi.getAll({ limit: 6, sort: "latest" }),
+    tagApi.getPopular(8),
+  ]);
+
+  if (snippetsResult.status === "rejected") {
+    console.error("Failed to fetch snippets:", snippetsResult.reason);
+  }
+
+  if (tagsResult.status === "rejected") {
+    console.error("Failed to fetch tags:", tagsResult.reason);
+  }
+
+  const recentSnippets: Snippet[] =
+    snippetsResult.status === "fulfilled" && snippetsResult.value.success
+      ? snippetsResult.value.data
+      : [];
+
+  const popularTags: Tag[] =
+    tagsResult.status === "fulfilled" && tagsResult.value.success
+      ? tagsResult.value.data
+      : [];
 
   return (
     <div className="flex flex-col">
@@ -59,17 +80,23 @@ export default function Home() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {popularTags.map((tag) => (
-            <Link key={tag.name} href={`/tags/${tag.name}`}>
-              <Badge
-                variant="secondary"
-                className="px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
-              >
-                #{tag.name}
-                <span className="ml-2 text-xs opacity-70">{tag.count}</span>
-              </Badge>
-            </Link>
-          ))}
+          {popularTags.length > 0 ? (
+            popularTags.map((tag) => (
+              <Link key={tag.id} href={`/tags/${tag.slug ?? tag.name}`}>
+                <Badge
+                  variant="secondary"
+                  className="px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                >
+                  #{tag.name}
+                  <span className="ml-2 text-xs opacity-70">{tag.count}</span>
+                </Badge>
+              </Link>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Popular tags are not available right now.
+            </p>
+          )}
         </div>
       </section>
 
@@ -85,11 +112,19 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {recentSnippets.map((snippet) => (
-            <SnippetCard key={snippet.id} snippet={snippet} />
-          ))}
-        </div>
+        {recentSnippets.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {recentSnippets.map((snippet) => (
+              <SnippetCard key={snippet._id} snippet={snippet} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              No snippets available at the moment. Check back soon!
+            </p>
+          </div>
+        )}
       </section>
     </div>
   );

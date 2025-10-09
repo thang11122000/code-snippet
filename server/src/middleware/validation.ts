@@ -13,17 +13,14 @@ export const createSnippetValidation: ValidationChain[] = [
     .isLength({ max: 1000 })
     .withMessage('Description is required and must be max 1000 characters'),
   body('code').notEmpty().withMessage('Code is required'),
-  body('language').notEmpty().trim().withMessage('Language is required'),
+  body('languageCode').notEmpty().trim().withMessage('Language code is required'),
   body('tags')
     .optional()
     .isArray({ max: 10 })
     .withMessage('Tags must be an array with max 10 items'),
   body('authorId').notEmpty().withMessage('Author ID is required'),
   body('authorName').notEmpty().withMessage('Author name is required'),
-  body('complexity')
-    .optional()
-    .isIn(['beginner', 'intermediate', 'advanced'])
-    .withMessage('Complexity must be beginner, intermediate, or advanced'),
+  body('complexity').optional().isString().withMessage('Complexity must be a string').bail().trim(),
 ];
 
 export const updateSnippetValidation: ValidationChain[] = [
@@ -38,15 +35,12 @@ export const updateSnippetValidation: ValidationChain[] = [
     .isLength({ max: 1000 })
     .withMessage('Description must be max 1000 characters'),
   body('code').optional().notEmpty().withMessage('Code cannot be empty'),
-  body('language').optional().trim().notEmpty().withMessage('Language cannot be empty'),
+  body('languageCode').optional().trim().notEmpty().withMessage('Language code cannot be empty'),
   body('tags')
     .optional()
     .isArray({ max: 10 })
     .withMessage('Tags must be an array with max 10 items'),
-  body('complexity')
-    .optional()
-    .isIn(['beginner', 'intermediate', 'advanced'])
-    .withMessage('Complexity must be beginner, intermediate, or advanced'),
+  body('complexity').optional().isString().withMessage('Complexity must be a string').bail().trim(),
 ];
 
 // Query validation
@@ -60,13 +54,10 @@ export const paginationValidation: ValidationChain[] = [
 
 export const snippetQueryValidation: ValidationChain[] = [
   ...paginationValidation,
-  query('language').optional().trim(),
+  query('languageCode').optional().trim(),
   query('tag').optional().trim(),
   query('search').optional().trim(),
-  query('sort')
-    .optional()
-    .isIn(['latest', 'popular', 'views'])
-    .withMessage('Sort must be latest, popular, or views'),
+  query('sort').optional().isIn(['latest', 'oldest']).withMessage('Sort must be latest or oldest'),
 ];
 
 // ID validation

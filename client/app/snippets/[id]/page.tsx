@@ -1,25 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Calendar,
-  Eye,
-  Heart,
-  Share2,
-  Edit,
-  Trash2,
-  Copy,
-  Check,
-} from "lucide-react";
+import { ArrowLeft, Calendar, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { mockSnippets } from "@/lib/mock-data";
+import { snippetApi } from "@/lib/api";
 import { getComplexityColor } from "@/lib/complexity";
-import { SnippetCard } from "@/components/snippet-card";
 import { CopyButton } from "@/components/copy-button";
+import { CodeEditor } from "@/components/code-editor";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -27,13 +17,15 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const snippet = mockSnippets.find((s) => s.id === id);
+  const response = await snippetApi.getById(id);
 
-  if (!snippet) {
+  if (!response.success || !response.data) {
     return {
       title: "Snippet Not Found",
     };
   }
+
+  const snippet = response.data;
 
   return {
     title: `${snippet.title} - CodeSnippet`,
@@ -48,15 +40,27 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function SnippetDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const snippet = mockSnippets.find((s) => s.id === id);
+  const response = await snippetApi.getById(id);
 
-  if (!snippet) {
+  if (!response.success || !response.data) {
     notFound();
   }
 
-  const relatedSnippets = mockSnippets
-    .filter((s) => s.id !== id && s.language === snippet.language)
-    .slice(0, 3);
+  const snippet = response.data;
+
+  const relatedSnippetsResponse = await snippetApi.getAll({
+    languageCode: snippet.languageCode,
+    sort: "popular",
+    limit: 4,
+  });
+
+  const relatedSnippets =
+    relatedSnippetsResponse.success &&
+    Array.isArray(relatedSnippetsResponse.data)
+      ? relatedSnippetsResponse.data
+          .filter((s) => s._id !== snippet._id)
+          .slice(0, 3)
+      : [];
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -67,7 +71,7 @@ export default async function SnippetDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="container max-w-6xl px-4 py-8">
+    <div className="container max-w-6xl px-4 py-8 mx-auto">
       {/* Back Button */}
       <Link href="/">
         <Button variant="ghost" size="sm" className="gap-2 mb-6">
@@ -104,14 +108,6 @@ export default async function SnippetDetailPage({ params }: PageProps) {
                 <Calendar className="h-4 w-4" />
                 <span>{formatDate(snippet.createdAt)}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                <span>{snippet.views} views</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Heart className="h-4 w-4" />
-                <span>{snippet.likes} likes</span>
-              </div>
             </div>
           </div>
 
@@ -120,7 +116,7 @@ export default async function SnippetDetailPage({ params }: PageProps) {
           {/* Tags */}
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="text-sm">
-              {snippet.language}
+              {snippet.languageCode}
             </Badge>
             <Badge
               className={`text-sm ${getComplexityColor(snippet.complexity)}`}
@@ -146,25 +142,14 @@ export default async function SnippetDetailPage({ params }: PageProps) {
               <CopyButton text={snippet.code} />
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 rounded-md p-4 font-mono text-sm overflow-x-auto">
-                <pre>
-                  <code>{snippet.code}</code>
-                </pre>
-              </div>
+              <CodeEditor
+                value={snippet.code}
+                language={snippet.languageCode}
+                placeholder=""
+                readOnly={true}
+              />
             </CardContent>
           </Card>
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-3">
-            <Button className="gap-2">
-              <Heart className="h-4 w-4" />
-              Like
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-          </div>
         </div>
 
         {/* Sidebar */}
@@ -176,28 +161,23 @@ export default async function SnippetDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <Link
-                href={`/profile/${snippet.author.id}`}
+                href={`/profile/${snippet.authorId}`}
                 className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               >
                 <Avatar className="h-12 w-12">
                   <AvatarImage
-                    src={snippet.author.avatar}
-                    alt={snippet.author.name}
+                    src={snippet.authorImage}
+                    alt={snippet.authorName}
                   />
-                  <AvatarFallback>{snippet.author.name[0]}</AvatarFallback>
+                  <AvatarFallback>{snippet.authorName[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{snippet.author.name}</p>
+                  <p className="font-medium truncate">{snippet.authorName}</p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {snippet.author.email}
+                    {snippet.authorName}
                   </p>
                 </div>
               </Link>
-              {snippet.author.bio && (
-                <p className="text-sm text-muted-foreground mt-3">
-                  {snippet.author.bio}
-                </p>
-              )}
             </CardContent>
           </Card>
 
@@ -213,13 +193,13 @@ export default async function SnippetDetailPage({ params }: PageProps) {
                   readOnly
                   value={`${
                     typeof window !== "undefined" ? window.location.origin : ""
-                  }/snippets/${snippet.id}`}
+                  }/snippets/${snippet._id}`}
                   className="flex-1 px-3 py-2 text-sm bg-muted rounded-md truncate"
                 />
                 <CopyButton
                   text={`${
                     typeof window !== "undefined" ? window.location.origin : ""
-                  }/snippets/${snippet.id}`}
+                  }/snippets/${snippet._id}`}
                 />
               </div>
             </CardContent>
@@ -234,8 +214,8 @@ export default async function SnippetDetailPage({ params }: PageProps) {
               <CardContent className="space-y-4">
                 {relatedSnippets.map((related) => (
                   <Link
-                    key={related.id}
-                    href={`/snippets/${related.id}`}
+                    key={related._id}
+                    href={`/snippets/${related._id}`}
                     className="block group"
                   >
                     <div className="space-y-1">
@@ -245,11 +225,6 @@ export default async function SnippetDetailPage({ params }: PageProps) {
                       <p className="text-xs text-muted-foreground line-clamp-1">
                         {related.description}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{related.likes} likes</span>
-                        <span>•</span>
-                        <span>{related.views} views</span>
-                      </div>
                     </div>
                   </Link>
                 ))}

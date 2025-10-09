@@ -83,7 +83,7 @@ export default function SignUpPage() {
             {/* Divider */}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
-              <span className="px-2">What you'll get</span>
+              <span className="px-2">What you&apos;ll get</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 

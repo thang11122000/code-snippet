@@ -4,20 +4,23 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
+  image?: string;
   bio?: string;
   createdAt: string;
 }
 
 export interface Snippet {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   code: string;
-  language: string;
+  languageCode: string;
   tags: string[];
   complexity: ComplexityLevel;
-  author: User;
+  authorId: string;
+  authorName: string;
+  authorImage?: string;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
   likes: number;
@@ -25,8 +28,27 @@ export interface Snippet {
 }
 
 export interface Tag {
+  id: string;
   name: string;
+  slug?: string;
+  description?: string;
   count: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  pagination?: PaginationMeta;
+  message?: string;
 }
 
 export const LANGUAGES = [
