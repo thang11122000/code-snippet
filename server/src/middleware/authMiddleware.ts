@@ -2,6 +2,31 @@ import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 
 /**
+ * Middleware to verify requests coming from trusted internal services
+ */
+export const verifyServiceKey = (req: Request, res: Response, next: NextFunction) => {
+  const configuredKey = process.env.SERVICE_API_KEY;
+  const requestKey = req.headers['x-service-key'];
+
+  if (!configuredKey) {
+    console.error('SERVICE_API_KEY is not configured');
+    return res.status(500).json({
+      success: false,
+      message: 'Server configuration error',
+    });
+  }
+
+  if (requestKey !== configuredKey) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized request',
+    });
+  }
+
+  return next();
+};
+
+/**
  * Middleware to verify if user exists in the database
  * This can be used to protect routes that require authentication
  */

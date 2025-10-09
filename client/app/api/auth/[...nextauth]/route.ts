@@ -41,15 +41,70 @@ export const authOptions: NextAuthOptions = {
 
     // Callback when sign in is successful
     async signIn({ user, account, profile }) {
-      // The user will be synced with our database through the AuthSyncProvider component
-      // This happens client-side to avoid API route complexity
-
       if (!user || !user.email) {
         console.error("Invalid user data during sign in");
         return false;
       }
 
-      return true; // Return false to reject sign in
+      const provider = account?.provider ?? "credentials";
+      const userId =
+        account?.providerAccountId ??
+        (typeof profile === "object" && profile && "sub" in profile
+          ? (profile as Record<string, string>).sub
+          : undefined) ??
+        (typeof profile === "object" && profile && "id" in profile
+          ? (profile as Record<string, string>).id
+          : undefined) ??
+        user.id ??
+        user.email;
+
+      if (!userId) {
+        console.error("Unable to resolve user identifier during sign in");
+        return false;
+      }
+
+      const serviceKey =
+        process.env.SERVICE_API_KEY ?? process.env.NEXT_PUBLIC_SERVICE_API_KEY;
+
+      if (!serviceKey) {
+        console.error("SERVICE_API_KEY is not configured on the server");
+        return false;
+      }
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/users/auth`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-service-key": serviceKey,
+            },
+            body: JSON.stringify({
+              userId,
+              email: user.email,
+              name: user.name ?? "",
+              image: user.image,
+              provider,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null);
+          console.error("Failed to sync user during sign in", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorBody,
+          });
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Unexpected error syncing user during sign in", error);
+        return false;
+      }
     },
   },
 

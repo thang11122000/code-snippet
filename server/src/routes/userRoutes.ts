@@ -1,13 +1,14 @@
 import express from 'express';
 import { body, param } from 'express-validator';
 import { authenticateUser, getUserById, updateUser } from '../controllers/userController';
-import { verifyUser, verifyOwnership } from '../middleware/authMiddleware';
+import { verifyUser, verifyOwnership, verifyServiceKey } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
 // POST /api/v1/users/auth - Authenticate user from NextAuth
 router.post(
   '/auth',
+  verifyServiceKey,
   [
     body('userId').notEmpty().withMessage('User ID is required'),
     body('email').isEmail().withMessage('Valid email is required'),
