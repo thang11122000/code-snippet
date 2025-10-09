@@ -1,6 +1,7 @@
 import express from 'express';
 import snippetRoutes from './snippetRoutes';
 import tagRoutes from './tagRoutes';
+import userRoutes from './userRoutes';
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.get('/health', (req, res) => {
 // API routes
 router.use('/snippets', snippetRoutes);
 router.use('/tags', tagRoutes);
+router.use('/users', userRoutes);
 
 export default router;

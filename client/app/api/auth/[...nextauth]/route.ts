@@ -7,6 +7,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
+      provider?: string;
     } & DefaultSession["user"];
   }
 }
@@ -23,32 +24,32 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub!;
+        session.user.provider = token.provider as string;
       }
       return session;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+      }
+      if (account) {
+        token.provider = account.provider;
       }
       return token;
     },
 
-    // Callback khi sign in thành công
+    // Callback when sign in is successful
     async signIn({ user, account, profile }) {
-      // Ở đây bạn có thể:
-      // 1. Lưu user vào database
-      // 2. Check whitelist
-      // 3. Custom logic khác
+      // The user will be synced with our database through the AuthSyncProvider component
+      // This happens client-side to avoid API route complexity
 
-      console.log("User signed in:", user);
-      console.log("Account:", account);
-      console.log("Profile:", profile);
+      if (!user || !user.email) {
+        console.error("Invalid user data during sign in");
+        return false;
+      }
 
-      // TODO: Lưu user vào database của bạn
-      // await saveUserToDatabase(user);
-
-      return true; // Return false để reject sign in
+      return true; // Return false to reject sign in
     },
   },
 
